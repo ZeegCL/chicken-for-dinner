@@ -1,0 +1,33 @@
+{
+  "name": "chicken-for-dinner",
+  "version": "1.0.0",
+  "description": "A videogame made in Javascript with Phaser",
+  "private": "true",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack",
+    "watch": "webpack --watch --progress --mode development"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ZeegCL/chicken-for-dinner.git"
+  },
+  "keywords": [
+    "game",
+    "phaser",
+    "javascript"
+  ],
+  "author": "José González",
+  "license": "SEE LICENSE IN LICENSE",
+  "bugs": {
+    "url": "https://github.com/ZeegCL/chicken-for-dinner/issues"
+  },
+  "homepage": "https://github.com/ZeegCL/chicken-for-dinner#readme",
+  "devDependencies": {
+    "webpack": "^5.70.0",
+    "webpack-cli": "^4.9.2"
+  },
+  "dependencies": {
+    "phaser": "^3.55.2"
+  }
+}
