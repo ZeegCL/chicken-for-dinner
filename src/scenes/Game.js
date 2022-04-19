@@ -1,3 +1,5 @@
+import ChickenFactory from "../gameobjects/ChickenFactory";
+
 export default class GameScene extends Phaser.Scene {
 
     constructor() {
@@ -23,15 +25,13 @@ export default class GameScene extends Phaser.Scene {
         // Entities Layer group
         this.entities;
         // Array containing cuccos
-        this.cuccos;
+        this.chickens;
         // Current amount of cuccos displayed
         this.amount;
         this.maxAmount = 16;
         // Amount per shipment
         this.shipmentReq = [10, 50, 100, 200, 500, 1000, 5000];
-        // Speed for a bird
-        this.minSpeed;
-        this.maxSpeed = 200;
+        
         // Audio
         this.bgm = null;
         this.dieSound;
@@ -39,6 +39,8 @@ export default class GameScene extends Phaser.Scene {
         this.caught = 0;
 
         this.timer;
+
+        this.chickenFactory = new ChickenFactory();
     }
 
     preload() {
@@ -57,10 +59,12 @@ export default class GameScene extends Phaser.Scene {
         this.caught = 0;
         this.registry.set('totalCaught', 0);
         this.registry.set('shipCompleted', 0);
+
+        this.registry.set('minSpeed', 50);
+        this.registry.set('maxSpeed', 200);
         
-        this.cuccos = [];
+        this.chickens = [];
         this.amount = 1;
-        this.minSpeed = 50;
         this.timeLimit = 60;
         
     
@@ -154,75 +158,56 @@ export default class GameScene extends Phaser.Scene {
     addBirds() {
         for (let i = 0; i < this.amount; i++) {
     
-            if (this.cuccos[i] == undefined || this.cuccos[i].alive == false) {
+            if (this.chickens[i] == undefined || this.chickens[i].alive == false) {
                 // If the sprite exists but is dead, try to destroy it
                 try {
-                    this.cuccos[i].destroy();    
+                    this.chickens[i].destroy();    
                 } catch (e) {};
                 
-                // Initialize vars to create a bird
+                // Initial position of the bird
                 let randX = Math.floor(Math.random() * this.cameras.main.width);
                 let randY = Math.floor(Math.random() * this.cameras.main.height);
-                let velX = Math.floor(this.minSpeed + (Math.random() * this.maxSpeed));
-                let velY = Math.floor(this.minSpeed + (Math.random() * this.maxSpeed));
-                velX = velX > this.maxSpeed ? this.maxSpeed : velX;
-                velY = velY > this.maxSpeed ? this.maxSpeed : velY;
-                // 10% chance to spawn a golden cucco
-                let isGolden = (Math.random() * 100) <= 10;
-                let birdType = isGolden ? "goldencucco" : "cucco";
-    
-                this.cuccos[i] = this.entities.create(randX, randY, birdType);
-                this.cuccos[i].name = birdType;
-                this.cuccos[i].anims.play(isGolden ? "goldenmove" : "move");
-                
-                
-                // Set physics
-                this.physics.add.existing(this.cuccos[i]);
-                this.cuccos[i].body.setBounce(1, 1);
-                this.cuccos[i].body.setCollideWorldBounds(true);
-                this.cuccos[i].body.setVelocity(velX, velY);
 
-                // Set interaction
-                this.cuccos[i].setInteractive();
-                this.cuccos[i].on('clicked', this.onBirdClick, this);
+                this.chickens[i] = this.chickenFactory.create(randX, randY, this.entities, this.physics, this.onBirdClick, this);
             }
         }
     }
 
     runaway() {
-        for (let i = 0; i < this.cuccos.length; i++) {
-            if (!this.cuccos[i].alive) { continue; }
+        let minSpeed = this.registry.get('minSpeed');
+        let maxSpeed = this.registry.get('maxSpeed');
+
+        for (let chicken of this.chickens) {
+            if (!chicken.alive) { continue; }
     
-            let distance = Math.sqrt(Math.pow(this.input.activePointer.worldX - this.cuccos[i].x, 2) + Math.pow(this.input.activePointer.worldY - this.cuccos[i].y, 2));
+            let distance = Math.sqrt(Math.pow(this.input.activePointer.worldX - chicken.x, 2) + Math.pow(this.input.activePointer.worldY - chicken.y, 2));
             
             if (distance <= this.RUNAWAY_RADIUS) {
                 // Speed in pixels/second relative to the distance from the click point.
                 // The nearer it is, the fastest it runs
-                let relSpeed = (this.RUNAWAY_RADIUS / (this.RUNAWAY_RADIUS * distance)) * this.maxSpeed;
-                if (relSpeed > this.maxSpeed) {
-                    relSpeed = this.maxSpeed;
-                } else if (relSpeed < this.minSpeed) {
-                    relSpeed = this.minSpeed;
+                let relSpeed = (this.RUNAWAY_RADIUS / (this.RUNAWAY_RADIUS * distance)) * maxSpeed;
+                if (relSpeed > maxSpeed) {
+                    relSpeed = maxSpeed;
+                } else if (relSpeed < minSpeed) {
+                    relSpeed = minSpeed;
                 }
 
-                let dirX = this.cuccos[i].x - this.input.activePointer.worldX;
-                let dirY = this.cuccos[i].y - this.input.activePointer.worldY;
+                let dirX = chicken.x - this.input.activePointer.worldX;
+                let dirY = chicken.y - this.input.activePointer.worldY;
     
                 let velX = dirX + (relSpeed * (dirX < 0 ? -1 : 1));
                 let velY = dirY + (relSpeed * (dirX < 0 ? -1 : 1));
 
-                this.cuccos[i].body.setVelocity(velX, velY);
+                chicken.body.setVelocity(velX, velY);
             } else {
                 // Increase speed of alive cuccos
-                let velX = this.cuccos[i].body.velocity.x * (1 + Math.random());
-                let velY = this.cuccos[i].body.velocity.y * (1 + Math.random());
+                let velX = chicken.body.velocity.x * (1 + Math.random());
+                let velY = chicken.body.velocity.y * (1 + Math.random());
     
-                velX = Math.abs(velX) > this.maxSpeed ? this.maxSpeed * (velX / Math.abs(velX)) : velX;
-                velY = Math.abs(velY) > this.maxSpeed ? this.maxSpeed * (velY / Math.abs(velY)) : velY;
+                velX = Math.abs(velX) > maxSpeed ? maxSpeed * (velX / Math.abs(velX)) : velX;
+                velY = Math.abs(velY) > maxSpeed ? maxSpeed * (velY / Math.abs(velY)) : velY;
     
-                this.cuccos[i].body.setVelocity(velX, velY);
-
-                console.log("* Cucco[" + i + "] speed: x" + this.cuccos[i].body.velocity.x.toFixed(2) + " y" + this.cuccos[i].body.velocity.y.toFixed(2));
+                chicken.body.setVelocity(velX, velY);
             }
         }
     }
@@ -272,13 +257,21 @@ export default class GameScene extends Phaser.Scene {
         
         this.scoreText.setText(this.caught + "/" + this.shipmentReq[this.registry.get('shipCompleted')]);
     
-        // Increase difficulty
+        // Increase the number of chickens
         this.amount = (this.amount >= this.maxAmount ? this.maxAmount : this.amount *= 2);
-        this.minSpeed *= (1 + Math.random());
-        if (this.minSpeed > this.maxSpeed) this.minSpeed = this.maxSpeed;
+        
+        // Increase minimum speed for chickens
+        let minSpeed = this.registry.get('minSpeed');
+        let maxSpeed = this.registry.get('maxSpeed');
+        minSpeed *= (1 + Math.random());
+
+        if (minSpeed > maxSpeed)
+            minSpeed = maxSpeed;
+
+        this.registry.set('minSpeed', minSpeed);
     
     
-        this.runaway(true);
+        this.runaway();
     
         this.addBirds();
     }
